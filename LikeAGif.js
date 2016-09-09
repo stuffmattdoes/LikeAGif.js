@@ -2,7 +2,7 @@
 
     LikeAGif.js
 
-    Description: Iterate through multiple elements for a specified amount of time up until a set
+    Description: Iterate through & activate DOM elements, kind of like a gif.
     Author: Matthew Morrison @stuffmattdoesnt
     License: MIT
     Twitter: @stuffmattdoesnt
@@ -22,12 +22,14 @@
         var defaults = {
             containerActiveClass: 'active',
             containerCompleteClass: 'lag-container-complete',
+            cycles: 0,
             direction : 'forward',
             frameStart : 0,
-            item: '.lag-item',
+            interval: 1,
+            item: 'lag-item',
             itemActiveClass: 'active',
+            iterations: 0,
             speed: 500,
-            steps: 1,
             timeout: 0,
             resetOnTimeout: false,
             resetOnStart: true
@@ -63,19 +65,24 @@
             // Variables
             var containerActiveClass = this.options.containerActiveClass,
                 containerCompleteClass = this.options.containerCompleteClass,
-                item = this.options.item,
+                cycles = this.options.cycles,
+                frameStart = this.options.frameStart,
+                item = "." + this.options.item,
                 itemActiveClass = this.options.itemActiveClass,
+                iterations = this.options.iterations,
                 speed = this.options.speed,
                 timeout = this.options.timeout,
                 resetOnStart = this.options.resetOnStart,
-                steps = this.options.steps;
+                interval = this.options.interval;
 
-            var nextSwap;
+            var nextSwap,
+                iterationCount = 0,
+                cycleCount = 0;
 
             if (resetOnStart) {
                 // console.log("Reset on start");
                 lagInstance.reset();
-                nextSwap = 0;
+                nextSwap = frameStart;
             } else {
                 // Let's start our LikeAGif
                 nextSwap = $(container).find(item + "." + itemActiveClass).index();
@@ -83,16 +90,56 @@
 
             $(container).removeClass(containerCompleteClass);
 
+
+            // -------------
+            // Swap interval
+            // -------------
+
             myInterval = window.setInterval(function() {
                 $itemsLength = $(container).find($(item)).length - 1;
-                nextSwap >= $itemsLength ? nextSwap %= $itemsLength : nextSwap += steps;
+                $itemsLengthFull = $itemsLength + 1;
+                nextSwap >= $itemsLength ? nextSwap %= $itemsLength : nextSwap += interval;
+
+                if (nextSwap >= $itemsLength) {
+                    cycleCount ++;
+                }
+
+                iterationCount ++;
 
                 $(container).find($(item)).removeClass(itemActiveClass);
                 $(container).find($(item)).eq(nextSwap).addClass(itemActiveClass);
+
+                // Stop our LAG instance if it exceeds the specified iteration count
+                if (iterations > 0
+                    && iterationCount >= iterations) {
+
+                    if (lagInstance.options.resetOnTimeout) {
+                        // console.log("Iteration reset");
+                        lagInstance.reset();
+                    } else {
+                        // console.log("Iterations complete");
+                        clearInterval(myInterval);
+                    }
+                }
+
+                // Stop our LAG instance if we've reached our max cycle count
+                if (cycles > 0
+                    && iterationCount >= cycles * $itemsLengthFull) {
+
+                    if (lagInstance.options.resetOnTimeout) {
+                        // console.log("Cycles reset");
+                        lagInstance.reset();
+                    } else {
+                        // console.log("Cycles complete");
+                        clearInterval(myInterval);
+                    }
+                }
+
             }, speed);
 
-            // // Set a time limit on our LikeAGif
+            // Set a time limit on our LikeAGif
             if (timeout > 0) {
+                // console.log("Timeout init");
 
                 myTimeout = window.setTimeout(function() {
 
@@ -109,11 +156,13 @@
 
         }
 
+        // Reset our LAG instance to it's initial state
         this.reset = function() {
             // console.log("Reset");
 
             var containerActiveClass = this.options.containerActiveClass,
                 containerCompleteClass = this.options.containerCompleteClass,
+                frameStart = this.options.frameStart,
                 item = this.options.item,
                 itemActiveClass = this.options.itemActiveClass;
 
@@ -121,7 +170,7 @@
             clearInterval(myTimeout);
 
             $(container).find($(item)).removeClass(itemActiveClass);
-            $(container).find($(item)).eq(0).addClass(itemActiveClass);
+            $(container).find($(item)).eq(frameStart).addClass(itemActiveClass);
             $(container).addClass(containerCompleteClass);
         }
 
